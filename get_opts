@@ -62,18 +62,31 @@ main(Args) ->
 	{ok, {Opts, BareArgs}} ->
 	    check_opts(Opts),
 	    check_help(Opts),
-	    Test = case BareArgs of
-		      [] -> "argument";
-		      _ -> string:join(BareArgs, " ")
-		  end,
-	    Verb = proplists:get_value(verbose, Opts) - proplists:get_value(quiet, Opts),
-	    display_arg(Test, Verb);
+	    script(Opts, BareArgs);
 	{error, _} ->
 	    usage(1)
     end.
 
-%% Functions used by main/1 go here
+%% Functions used in script go here
 
+script(Opts, BareArgs) ->
+    Verb = proplists:get_value(verbose, Opts) - proplists:get_value(quiet, Opts),
+    Test = proplists:get_value(test, Opts),
+    Arg = case BareArgs of
+	      [] -> "argument";
+	      _ -> string:join(BareArgs, " ")
+	  end,
+    display_arg(Arg, Verb, Test).
+
+display_arg(Msg, Verb, undefined) ->
+    display_arg(Msg, Verb);
+display_arg(Msg, Verb, Test) ->
+    case Verb < 0 of
+	    true -> display_arg(Msg, Verb);
+	    _    ->
+			  io:format("Test is: ~s~n", [Test]),
+			  display_arg(Msg, Verb)
+    end.
 display_arg(Msg, Verb) when Verb > 0 ->
     io:format("Verbosity is high: ~s~n", [erlang:integer_to_list(Verb)]),
     display_arg(Msg);
