@@ -1,64 +1,86 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -smp enable
+%%! -smp enable -sname script
 
--define(SPEC,
-	[{align, $a, "align", atom,
-	  "alignment: left (default) | right | center"},
-	 {width, $w, "width", {integer, 70},
-	  "width used by alignment (70)"},
-	 {help, $h, "help", boolean,
-	  "display this help and exit"}]).
+%%%% Edit options/usage message %%%%%
 
-main(Args) ->
-    case getopt:parse(?SPEC, Args) of
-	{ok, {Opts, MsgParts}} ->
-	    maybe_help(Opts),
-	    Msg = case MsgParts of
-		      [] -> "Hello World!";
-		      _ -> string:join(MsgParts, " ")
-		  end,
-	    Align = proplists:get_value(align, Opts),
-	    Width = proplists:get_value(width, Opts),
-	    io:format("~s~n", [format(Msg, Align, Width)]);
-	{error, _} -> usage(1)
-    end.
+% Add your options here
+-define(SPEC, [
+	       {help, $h, "help", undefined,
+		"display this help and exit"},
+	       {verbose, $v, "verbose", {integer, 0},
+		"raises output verbosity"},
+	       {quiet, $q, "quiet", {integer, 0},
+		"lowers output verbosity"},
+	       {test, $t, "test", string,
+		"optional string to output"}
+	      ]).
 
 usage(Exit) ->
     getopt:usage(
-      ?SPEC, "hello", "[message]",
-      [{"message", "message to print (Hello World!)"}]),
+      ?SPEC, escript:script_name(), "[argument]",
+      [{"argument", "description of the argument"}]
+     ),
     case Exit of
 	0 ->
-	    io:format("Prints a message to standard output, "
-		      "aligning it with a particular number "
-		      "of spaces (width). \n");
+	    io:format("A getopt template for escript\n");
 	_ -> ok
     end,
     erlang:halt(Exit).
 
-maybe_help(Opts) ->
-    case proplists:get_bool(help, Opts) of
-	true -> usage(0);
-	false -> ok
+check_opts(Opts) ->
+    check_opts(Opts, []).
+check_opts([], []) ->
+    ok;
+check_opts([], ErrorList) ->
+    io:format("Argument Errors:~n~s~n", [string:join(ErrorList, "\n")]),
+    usage(1);
+check_opts([{test, Test} | Opts], ErrorList) ->
+    case is_list(Test) of
+	true -> check_opts(Opts, ErrorList);
+	false -> check_opts(Opts, ["unexpected value for '-t'"])
+    end;
+check_opts([_ | Opts], ErrorList) ->
+    check_opts(Opts, ErrorList).
+
+
+%%%%% Boilerplate helper functions %%%%%
+
+% Checks for help option and displays help message and exits if present
+check_help([]) ->
+    ok;
+check_help([help | _]) ->
+    usage(0);
+check_help([_ | T]) ->
+    check_help(T).
+
+%%%% Body of script %%%%%
+
+% main/1 is the script's entry point
+main(Args) ->
+    case getopt:parse(?SPEC, Args) of
+	{ok, {Opts, BareArgs}} ->
+	    check_opts(Opts),
+	    check_help(Opts),
+	    Test = case BareArgs of
+		      [] -> "argument";
+		      _ -> string:join(BareArgs, " ")
+		  end,
+	    Verb = proplists:get_value(verbose, Opts) - proplists:get_value(quiet, Opts),
+	    display_arg(Test, Verb);
+	{error, _} ->
+	    usage(1)
     end.
 
-format(_, _, Width) when Width < 0 ->
-    opt_error("invalid width");
-format(Msg, undefined, Width)      ->
-    string:left(Msg, Width);
-format(Msg, left, Width)           ->
-    string:left(Msg, Width);
-format(Msg, right, Width)          ->
-    string:right(Msg, Width);
-format(Msg, center, Width)         ->
-    string:centre(Msg, Width);
-format(_, _, _)                    ->
-    opt_error("invalid align option").
+%% Functions used by main/1 go here
 
-opt_error(Msg) ->
-    io:format("Error: ~s~n", [Msg]),
-    erlang:halt(1).
-
+display_arg(Msg, Verb) when Verb > 0 ->
+    io:format("Verbosity is high: ~s~n", [erlang:integer_to_list(Verb)]),
+    display_arg(Msg);
+display_arg(Msg, Verb) when Verb =< 0 ->
+    io:format("(~s)~n", [erlang:integer_to_list(Verb)]),
+    display_arg(Msg).
+display_arg(Msg) ->
+    io:format("Argument is: ~s~n", [Msg]).
 
 
