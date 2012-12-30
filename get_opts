@@ -82,5 +82,3 @@ display_arg(Msg, Verb) when Verb =< 0 ->
     display_arg(Msg).
 display_arg(Msg) ->
     io:format("Argument is: ~s~n", [Msg]).
-
-
