@@ -27,7 +27,7 @@ and checkopts to reflect the new options.  The main body of the script has been
 moved to script/1, there's no need to edit main/1.  The options are passed into
 script/1 as a list of tuples and bare arguments are passed in a seperate list.
 
-* Options:
+Opts Example:
 
 ```erlang
 [
@@ -38,7 +38,7 @@ script/1 as a list of tuples and bare arguments are passed in a seperate list.
 ]
 ```
 
-* Bare Arguments:
+BareArgs Example:
 
 ```erlang
 [
